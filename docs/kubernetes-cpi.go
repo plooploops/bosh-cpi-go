@@ -62,7 +62,11 @@ func testClient() {
 		panic(err.Error())
 	}
 
+	//read the config to create a pod instead of a VM.
+    // clientset.CoreV1().Pods("").Create(metav1.)
+	//check pods (shouldn't work yet)
 	for {
+
 		pods, err := clientset.CoreV1().Pods("").List(metav1.ListOptions{})
 		if err != nil {
 			panic(err.Error())

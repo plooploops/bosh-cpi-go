@@ -1,5 +1,16 @@
 
-### build steps on Windows
+### build steps on Windows (new)
+
+```cmd
+go get -u github.com/golang/dep/cmd/dep
+
+
+git clone https://github.com/plooploops/bosh-cpi-go && cd bosh-cpi-go
+dep ensure
+go build docs/kubernetes-cpi.go
+```
+
+### build steps on Windows (old)
 
 
 ```cmd

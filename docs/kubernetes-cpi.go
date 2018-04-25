@@ -6,15 +6,18 @@ import (
 	"flag"
 	"fmt"
 	"path/filepath"
-	"time"
 
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	"github.com/cppforlife/bosh-cpi-go/apiv1"
 	"github.com/cppforlife/bosh-cpi-go/rpc"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	// "k8s.io/client-go/1.5/kubernetes"
+	// "k8s.io/client-go/1.5/pkg/api/v1"
+	// "k8s.io/client-go/1.5/tools/clientcmd"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 type CPIFactory struct{}
@@ -63,34 +66,32 @@ func testClient() {
 	}
 
 	//read the config to create a pod instead of a VM.
-    // clientset.CoreV1().Pods("").Create(metav1.)
 	//check pods (shouldn't work yet)
-	for {
+	podsClient := clientset.CoreV1().Pods(corev1.NamespaceDefault)
+	pod, err := podsClient.Create(&corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "my-pod",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  "jupyter-notebook",
+					Image: "jupyter/minimal-notebook",
+					Ports: []corev1.ContainerPort{
+						{
+							ContainerPort: 8888,
+						},
+					},
+				},
+			},
+		},
+	})
 
-		pods, err := clientset.CoreV1().Pods("").List(metav1.ListOptions{})
-		if err != nil {
-			panic(err.Error())
-		}
-		fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
-
-		// Examples for error handling:
-		// - Use helper functions like e.g. errors.IsNotFound()
-		// - And/or cast to StatusError and use its properties like e.g. ErrStatus.Message
-		namespace := "default"
-		pod := "example-xxxxx"
-		_, err = clientset.CoreV1().Pods(namespace).Get(pod, metav1.GetOptions{})
-		if errors.IsNotFound(err) {
-			fmt.Printf("Pod %s in namespace %s not found\n", pod, namespace)
-		} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
-			fmt.Printf("Error getting pod %s in namespace %s: %v\n",
-				pod, namespace, statusError.ErrStatus.Message)
-		} else if err != nil {
-			panic(err.Error())
-		} else {
-			fmt.Printf("Found pod %s in namespace %s\n", pod, namespace)
-		}
-		time.Sleep(10 * time.Second)
+	if err != nil {
+		panic(err.Error())
 	}
+
+	fmt.Printf("Pod %s info namespace: %s clustername: %s \n", pod, pod.Namespace, pod.ClusterName)
 }
 
 func homeDir() string {

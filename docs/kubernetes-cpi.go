@@ -6,12 +6,12 @@ import (
 	"flag"
 	"fmt"
 	"path/filepath"
-	"time"
+//	"time"
 
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	"github.com/cppforlife/bosh-cpi-go/apiv1"
 	"github.com/cppforlife/bosh-cpi-go/rpc"
-	"k8s.io/apimachinery/pkg/api/errors"
+//	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -23,9 +23,11 @@ type CPI struct{}
 
 var _ apiv1.CPIFactory = CPIFactory{}
 var _ apiv1.CPI = CPI{}
+var k8sClient *kubernetes.Clientset
+var namespace = "default"
 
 func main() {
-	testClient()
+	initK8sClient()
 	logger := boshlog.NewLogger(boshlog.LevelNone)
 
 	cli := rpc.NewFactory(logger).NewCLI(CPIFactory{})
@@ -37,17 +39,10 @@ func main() {
 	}
 }
 
-func testClient() {
+func initK8sClient() {
 	var kubeconfig *string
 
-	if home := homeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, "source", "repos", "bosh-cpi-go", "docs", "config"), "(optional) absolute path to the kubeconfig file")
-
-		// kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-	} else {
-		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-	}
-
+	kubeconfig = flag.String("kubeconfig", filepath.Join(".", "kubeconfig"), "absolute path to the kubeconfig file")
 	flag.Parse()
 
 	// use the current context in kubeconfig
@@ -57,47 +52,16 @@ func testClient() {
 	}
 
 	// create the clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	k8sClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	//read the config to create a pod instead of a VM.
-    // clientset.CoreV1().Pods("").Create(metav1.)
-	//check pods (shouldn't work yet)
-	for {
-
-		pods, err := clientset.CoreV1().Pods("").List(metav1.ListOptions{})
-		if err != nil {
-			panic(err.Error())
-		}
-		fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
-
-		// Examples for error handling:
-		// - Use helper functions like e.g. errors.IsNotFound()
-		// - And/or cast to StatusError and use its properties like e.g. ErrStatus.Message
-		namespace := "default"
-		pod := "example-xxxxx"
-		_, err = clientset.CoreV1().Pods(namespace).Get(pod, metav1.GetOptions{})
-		if errors.IsNotFound(err) {
-			fmt.Printf("Pod %s in namespace %s not found\n", pod, namespace)
-		} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
-			fmt.Printf("Error getting pod %s in namespace %s: %v\n",
-				pod, namespace, statusError.ErrStatus.Message)
-		} else if err != nil {
-			panic(err.Error())
-		} else {
-			fmt.Printf("Found pod %s in namespace %s\n", pod, namespace)
-		}
-		time.Sleep(10 * time.Second)
-	}
-}
-
-func homeDir() string {
-	if h := os.Getenv("HOME"); h != "" {
-		return h
-	}
-	return os.Getenv("USERPROFILE") // windows
+//	pods, err := k8sClient.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+//	if err != nil {
+//		panic(err.Error())
+//	}
+//	fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
 }
 
 // Empty CPI implementation

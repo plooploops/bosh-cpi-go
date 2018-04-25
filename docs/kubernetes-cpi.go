@@ -6,13 +6,13 @@ import (
 	"flag"
 	"fmt"
 	"path/filepath"
-//	"time"
+	//	"time"
 
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	"github.com/cppforlife/bosh-cpi-go/apiv1"
 	"github.com/cppforlife/bosh-cpi-go/rpc"
-//	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	//	"k8s.io/apimachinery/pkg/api/errors"
+	// metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -23,7 +23,8 @@ type CPI struct{}
 
 var _ apiv1.CPIFactory = CPIFactory{}
 var _ apiv1.CPI = CPI{}
-var k8sClient *kubernetes.Clientset
+
+// var k8sClient *kubernetes.Clientset
 var namespace = "default"
 
 func main() {
@@ -57,11 +58,13 @@ func initK8sClient() {
 		panic(err.Error())
 	}
 
-//	pods, err := k8sClient.CoreV1().Pods(namespace).List(metav1.ListOptions{})
-//	if err != nil {
-//		panic(err.Error())
-//	}
-//	fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
+	fmt.Printf("There is %s foo", k8sClient)
+
+	// pods, err := k8sClient.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+	// if err != nil {
+	// 	panic(err.Error())
+	// }
+	//	fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
 }
 
 // Empty CPI implementation

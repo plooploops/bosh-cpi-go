@@ -1,18 +1,22 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"flag"
-	"fmt"
 	"path/filepath"
-	//	"time"
 
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	"github.com/cppforlife/bosh-cpi-go/apiv1"
 	"github.com/cppforlife/bosh-cpi-go/rpc"
 	//	"k8s.io/apimachinery/pkg/api/errors"
-	// metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	// "k8s.io/client-go/1.5/kubernetes"
+	// "k8s.io/client-go/1.5/pkg/api/v1"
+	// "k8s.io/client-go/1.5/tools/clientcmd"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -24,11 +28,12 @@ type CPI struct{}
 var _ apiv1.CPIFactory = CPIFactory{}
 var _ apiv1.CPI = CPI{}
 
-// var k8sClient *kubernetes.Clientset
+var k8sClient *kubernetes.Clientset
 var namespace = "default"
 
 func main() {
 	initK8sClient()
+
 	logger := boshlog.NewLogger(boshlog.LevelNone)
 
 	cli := rpc.NewFactory(logger).NewCLI(CPIFactory{})
@@ -57,14 +62,9 @@ func initK8sClient() {
 	if err != nil {
 		panic(err.Error())
 	}
+	pods, err := k8sClient.CoreV1().Pods(namespace).List(metav1.ListOptions{})
 
-	fmt.Printf("There is %s foo", k8sClient)
-
-	// pods, err := k8sClient.CoreV1().Pods(namespace).List(metav1.ListOptions{})
-	// if err != nil {
-	// 	panic(err.Error())
-	// }
-	//	fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
+	fmt.Printf("We have found %s number of pods ", pods.Size)
 }
 
 // Empty CPI implementation
@@ -90,10 +90,56 @@ func (c CPI) CreateVM(
 	cloudProps apiv1.VMCloudProps, networks apiv1.Networks,
 	associatedDiskCIDs []apiv1.DiskCID, env apiv1.VMEnv) (apiv1.VMCID, error) {
 
+	//read the config to create a pod instead of a VM.
+	//check pods (shouldn't work yet)
+	podsClient := k8sClient.CoreV1().Pods(corev1.NamespaceDefault)
+	pod, err := podsClient.Create(&corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "my-pod",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name:  "jupyter-notebook",
+					Image: "jupyter/minimal-notebook",
+					Ports: []corev1.ContainerPort{
+						{
+							ContainerPort: 8888,
+						},
+					},
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	fmt.Printf("Pod %s info namespace: %s clustername: %s \n", pod, pod.Namespace, pod.ClusterName)
+
 	return apiv1.NewVMCID("vm-cid"), nil
 }
 
 func (c CPI) DeleteVM(cid apiv1.VMCID) error {
+
+	podsClient := k8sClient.CoreV1().Pods(corev1.NamespaceDefault)
+	pods, err := podsClient.Get(cid.AsString(), metav1.GetOptions{})
+
+	fmt.Printf("We have found %s number of pods ", pods.Size)
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	// err = podsClient.Delete("my-pod", metav1.DeleteOptions{
+	// 	GracePeriodSeconds: 10,
+	// 	Preconditions :
+	// 	OrphanDependents : false,
+	// 	PropagationPolicy : metav1.Prop
+	// })
+
+	// fmt.Printf("Pod %s info namespace: %s clustername: %s \n", pod, pod.Namespace, pod.ClusterName)
 	return nil
 }
 

@@ -27,6 +27,7 @@ type CPI struct{}
 
 var _ apiv1.CPIFactory = CPIFactory{}
 var _ apiv1.CPI = CPI{}
+
 var k8sClient *kubernetes.Clientset
 var namespace = "default"
 

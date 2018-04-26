@@ -11,12 +11,13 @@ import (
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	"github.com/cppforlife/bosh-cpi-go/apiv1"
 	"github.com/cppforlife/bosh-cpi-go/rpc"
+	uuid "github.com/satori/go.uuid"
 	//	"k8s.io/apimachinery/pkg/api/errors"
 
 	// "k8s.io/client-go/1.5/kubernetes"
 	// "k8s.io/client-go/1.5/pkg/api/v1"
 	// "k8s.io/client-go/1.5/tools/clientcmd"
-	"github.com/satori/go.uuid"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -100,8 +101,7 @@ func (c CPI) CreateVM(
 	cloudProps apiv1.VMCloudProps, networks apiv1.Networks,
 	associatedDiskCIDs []apiv1.DiskCID, env apiv1.VMEnv) (apiv1.VMCID, error) {
 
-	uuid := uuid.NewV4()
-	vmcid := uuid.String()
+	vmcid := uuid.NewV4().String()
 
 	//read the config to create a pod instead of a VM.
 	//check pods (shouldn't work yet)
@@ -126,6 +126,7 @@ func (c CPI) CreateVM(
 	})
 
 	if err != nil {
+		// return "", err
 		panic(err.Error())
 	}
 

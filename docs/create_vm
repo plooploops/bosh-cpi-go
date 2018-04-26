@@ -2,9 +2,9 @@
     "method": "create_vm",
     "arguments": [
         "agent_id",
-        "stemcell_id",
+        "stemcell_cid",
         {
-            "cloud_properties": "foo"
+            "cloud_properties": ""
         },
         {
             "default": {
@@ -16,7 +16,9 @@
         },
         [ "disk_cid" ],
         {
-            "group": "my-group"
+            "bosh": {
+                "group": "my-group"
+            }
         }
     ],
     "context": { }

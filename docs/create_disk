@@ -1,0 +1,11 @@
+{
+    "method": "create_disk",
+    "arguments": [
+        25000,
+        {
+            "cloud_properties": ""
+        },
+        "vm_cid"
+    ],
+    "context": { }
+}

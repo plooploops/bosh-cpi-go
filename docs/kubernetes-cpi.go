@@ -83,7 +83,8 @@ func (c CPI) Info() (apiv1.Info, error) {
 }
 
 func (c CPI) CreateStemcell(imagePath string, _ apiv1.StemcellCloudProps) (apiv1.StemcellCID, error) {
-	return apiv1.NewStemcellCID("stemcell-cid"), nil
+        // Handwave and always use the base ubuntu
+	return apiv1.NewStemcellCID("ubuntu:14.04"), nil
 }
 
 func (c CPI) DeleteStemcell(cid apiv1.StemcellCID) error {
@@ -108,7 +109,7 @@ func (c CPI) CreateVM(
 			Containers: []corev1.Container{
 				{
 					Name:  vmcid,
-					Image: "jupyter/minimal-notebook",
+					Image: stemcellCID.AsString(),
 					Ports: []corev1.ContainerPort{
 						{
 							ContainerPort: 8888,

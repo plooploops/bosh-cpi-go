@@ -1,0 +1,8 @@
+{
+    "method": "attach_disk",
+    "arguments": [
+        "vm_cid",
+        "disk_cid"
+    ],
+    "context": { }
+}

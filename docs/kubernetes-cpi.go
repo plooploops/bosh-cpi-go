@@ -2,6 +2,7 @@ package main
 
 import (
 	// "fmt"
+	"fmt"
 	"os"
 
 	"flag"
@@ -10,13 +11,15 @@ import (
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	"github.com/cppforlife/bosh-cpi-go/apiv1"
 	"github.com/cppforlife/bosh-cpi-go/rpc"
+	uuid "github.com/satori/go.uuid"
 	//	"k8s.io/apimachinery/pkg/api/errors"
 
 	// "k8s.io/client-go/1.5/kubernetes"
 	// "k8s.io/client-go/1.5/pkg/api/v1"
 	// "k8s.io/client-go/1.5/tools/clientcmd"
-	"github.com/satori/go.uuid"
+
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -29,6 +32,8 @@ type CPI struct{}
 var _ apiv1.CPIFactory = CPIFactory{}
 var _ apiv1.CPI = CPI{}
 
+// var testharness apiv1.CPI = CPI{}
+
 var k8sClient *kubernetes.Clientset
 var namespace = "default"
 
@@ -39,6 +44,8 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
+
+	// testharness.CreateDisk(4096, nil, nil)
 
 	logger := boshlog.NewLogger(boshlog.LevelNone)
 
@@ -94,13 +101,12 @@ func (c CPI) CreateVM(
 	cloudProps apiv1.VMCloudProps, networks apiv1.Networks,
 	associatedDiskCIDs []apiv1.DiskCID, env apiv1.VMEnv) (apiv1.VMCID, error) {
 
-	uuid, err := uuid.NewV4()	
-	vmcid := uuid.String()
+	vmcid := uuid.NewV4().String()
 
 	//read the config to create a pod instead of a VM.
 	//check pods (shouldn't work yet)
-	podsClient := k8sClient.CoreV1().Pods(corev1.NamespaceDefault)
-	_, err = podsClient.Create(&corev1.Pod{
+	podsClient := k8sClient.CoreV1().Pods(namespace)
+	_, err := podsClient.Create(&corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: vmcid,
 		},
@@ -120,6 +126,7 @@ func (c CPI) CreateVM(
 	})
 
 	if err != nil {
+		// return "", err
 		panic(err.Error())
 	}
 
@@ -127,10 +134,10 @@ func (c CPI) CreateVM(
 }
 
 func (c CPI) DeleteVM(cid apiv1.VMCID) error {
-	podsClient := k8sClient.CoreV1().Pods(corev1.NamespaceDefault)
+	podsClient := k8sClient.CoreV1().Pods(namespace)
 	deletePolicy := metav1.DeletePropagationForeground
-    err := podsClient.Delete(cid.AsString(), &metav1.DeleteOptions{
-	 	PropagationPolicy: &deletePolicy,
+	err := podsClient.Delete(cid.AsString(), &metav1.DeleteOptions{
+		PropagationPolicy: &deletePolicy,
 	})
 
 	return err
@@ -158,6 +165,31 @@ func (c CPI) GetDisks(cid apiv1.VMCID) ([]apiv1.DiskCID, error) {
 
 func (c CPI) CreateDisk(size int,
 	cloudProps apiv1.DiskCloudProps, associatedVMCID *apiv1.VMCID) (apiv1.DiskCID, error) {
+
+	//resources
+	scn := "azurefile"
+	diskCID := uuid.NewV4().String()
+	quantity, err := resource.ParseQuantity(fmt.Sprintf("%dGi", size/1024))
+	if err != nil {
+		panic(err.Error())
+	}
+
+	pvcClient := k8sClient.CoreV1().PersistentVolumeClaims(namespace)
+	_, err = pvcClient.Create(&corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: diskCID,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			StorageClassName: &scn,
+			Resources: corev1.ResourceRequirements{
+				Requests: map[corev1.ResourceName]resource.Quantity{
+					corev1.ResourceStorage: quantity}},
+		},
+	})
+	if err != nil {
+		panic(err.Error())
+	}
 
 	return apiv1.NewDiskCID("disk-cid"), nil
 }

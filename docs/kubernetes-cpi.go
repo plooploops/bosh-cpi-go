@@ -100,13 +100,13 @@ func (c CPI) CreateVM(
 	cloudProps apiv1.VMCloudProps, networks apiv1.Networks,
 	associatedDiskCIDs []apiv1.DiskCID, env apiv1.VMEnv) (apiv1.VMCID, error) {
 
-	uuid, err := uuid.NewV4()
+	uuid := uuid.NewV4()
 	vmcid := uuid.String()
 
 	//read the config to create a pod instead of a VM.
 	//check pods (shouldn't work yet)
 	podsClient := k8sClient.CoreV1().Pods(namespace)
-	_, err = podsClient.Create(&corev1.Pod{
+	_, err := podsClient.Create(&corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: vmcid,
 		},
@@ -167,14 +167,8 @@ func (c CPI) CreateDisk(size int,
 
 	//resources
 	scn := "azurefile"
-	uuid, err := uuid.NewV4()
-	if err != nil {
-		panic(err.Error())
-	}
-
-	diskCID := uuid.String()
+	diskCID := uuid.NewV4().String()
 	quantity, err := resource.ParseQuantity(fmt.Sprintf("%dGi", size/1024))
-	//err checks
 	if err != nil {
 		panic(err.Error())
 	}

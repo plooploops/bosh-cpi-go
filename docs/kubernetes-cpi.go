@@ -32,36 +32,41 @@ var k8sClient *kubernetes.Clientset
 var namespace = "default"
 
 func main() {
-	initK8sClient()
+	var err error
+	k8sConfigPath := filepath.Join(".", "kubeconfig")
+	k8sClient, err = initK8s(k8sConfigPath)
+	if err != nil {
+		panic(err.Error())
+	}
 
 	logger := boshlog.NewLogger(boshlog.LevelNone)
 
 	cli := rpc.NewFactory(logger).NewCLI(CPIFactory{})
 
-	err := cli.ServeOnce()
+	err = cli.ServeOnce()
 	if err != nil {
 		logger.Error("main", "Serving once: %s", err)
 		os.Exit(1)
 	}
 }
 
-func initK8sClient() {
-	var kubeconfig *string
-
-	kubeconfig = flag.String("kubeconfig", filepath.Join(".", "kubeconfig"), "absolute path to the kubeconfig file")
+func initK8s(k8sConfigPath string) (*kubernetes.Clientset, error) {
+	kubeconfig := flag.String("kubeconfig", k8sConfigPath, "path to the kubeconfig file")
 	flag.Parse()
 
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
 
 	// create the clientset
 	k8sClient, err = kubernetes.NewForConfig(config)
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
+
+	return k8sClient, nil
 }
 
 // Empty CPI implementation

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	// "fmt"
 	"os"
 
 	"flag"
@@ -33,9 +33,6 @@ var k8sClient *kubernetes.Clientset
 var namespace = "default"
 
 func main() {
-	u2 := uuid.NewV4()
-	fmt.Printf("UUIDv4: %s\n", u2)
-
 	var err error
 	k8sConfigPath := filepath.Join(".", "kubeconfig")
 	k8sClient, err = initK8s(k8sConfigPath)
@@ -97,17 +94,20 @@ func (c CPI) CreateVM(
 	cloudProps apiv1.VMCloudProps, networks apiv1.Networks,
 	associatedDiskCIDs []apiv1.DiskCID, env apiv1.VMEnv) (apiv1.VMCID, error) {
 
+	uuid, err := uuid.NewV4()	
+	vmcid := uuid.String()
+
 	//read the config to create a pod instead of a VM.
 	//check pods (shouldn't work yet)
 	podsClient := k8sClient.CoreV1().Pods(corev1.NamespaceDefault)
-	pod, err := podsClient.Create(&corev1.Pod{
+	_, err = podsClient.Create(&corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "my-pod",
+			Name: vmcid,
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
-					Name:  "jupyter-notebook",
+					Name:  vmcid,
 					Image: "jupyter/minimal-notebook",
 					Ports: []corev1.ContainerPort{
 						{
@@ -123,31 +123,17 @@ func (c CPI) CreateVM(
 		panic(err.Error())
 	}
 
-	fmt.Printf("Pod %s info namespace: %s clustername: %s \n", pod, pod.Namespace, pod.ClusterName)
-
-	return apiv1.NewVMCID("vm-cid"), nil
+	return apiv1.NewVMCID(vmcid), nil
 }
 
 func (c CPI) DeleteVM(cid apiv1.VMCID) error {
-
 	podsClient := k8sClient.CoreV1().Pods(corev1.NamespaceDefault)
-	pods, err := podsClient.Get(cid.AsString(), metav1.GetOptions{})
+	deletePolicy := metav1.DeletePropagationForeground
+    err := podsClient.Delete(cid.AsString(), &metav1.DeleteOptions{
+	 	PropagationPolicy: &deletePolicy,
+	})
 
-	fmt.Printf("We have found %s number of pods ", pods.Size)
-
-	if err != nil {
-		panic(err.Error())
-	}
-
-	// err = podsClient.Delete("my-pod", metav1.DeleteOptions{
-	// 	GracePeriodSeconds: 10,
-	// 	Preconditions :
-	// 	OrphanDependents : false,
-	// 	PropagationPolicy : metav1.Prop
-	// })
-
-	// fmt.Printf("Pod %s info namespace: %s clustername: %s \n", pod, pod.Namespace, pod.ClusterName)
-	return nil
+	return err
 }
 
 func (c CPI) CalculateVMCloudProperties(res apiv1.VMResources) (apiv1.VMCloudProps, error) {

@@ -125,6 +125,12 @@
   version = "v1.3.0"
 
 [[projects]]
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
+  version = "v1.2.0"
+
+[[projects]]
   name = "github.com/spf13/pflag"
   packages = ["."]
   revision = "4c012f6dcd9546820e378d0bdda4d8fc772cdfea"
@@ -345,6 +351,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "225f0ecb9498af322e2a7e322d094563b3bb2324dd728d6e8c97753c1b1c39a9"
+  inputs-digest = "270f9d29b9017e2101b4acdee6d6ef6333a7e8636a9793cd15d9341e34fbc2fe"
   solver-name = "gps-cdcl"
   solver-version = 1

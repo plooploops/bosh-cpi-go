@@ -15,6 +15,7 @@ import (
 	// "k8s.io/client-go/1.5/kubernetes"
 	// "k8s.io/client-go/1.5/pkg/api/v1"
 	// "k8s.io/client-go/1.5/tools/clientcmd"
+	"github.com/satori/go.uuid"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -32,6 +33,9 @@ var k8sClient *kubernetes.Clientset
 var namespace = "default"
 
 func main() {
+	u2 := uuid.NewV4()
+	fmt.Printf("UUIDv4: %s\n", u2)
+
 	var err error
 	k8sConfigPath := filepath.Join(".", "kubeconfig")
 	k8sClient, err = initK8s(k8sConfigPath)
@@ -48,6 +52,7 @@ func main() {
 		logger.Error("main", "Serving once: %s", err)
 		os.Exit(1)
 	}
+
 }
 
 func initK8s(k8sConfigPath string) (*kubernetes.Clientset, error) {

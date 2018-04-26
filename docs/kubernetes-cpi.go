@@ -58,13 +58,10 @@ func initK8sClient() {
 	}
 
 	// create the clientset
-	k8sClient, err := kubernetes.NewForConfig(config)
+	k8sClient, err = kubernetes.NewForConfig(config)
 	if err != nil {
 		panic(err.Error())
 	}
-	pods, err := k8sClient.CoreV1().Pods(namespace).List(metav1.ListOptions{})
-
-	fmt.Printf("We have found %s number of pods ", pods.Size)
 }
 
 // Empty CPI implementation

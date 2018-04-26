@@ -1,0 +1,10 @@
+{
+    "method": "create_stemcell",
+    "arguments": [
+        "image_path",
+        {
+            "cloud_properties": ""
+        }
+    ],
+    "context": {}
+}

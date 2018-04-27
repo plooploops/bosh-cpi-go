@@ -33,6 +33,15 @@ docs/test.sh
 
 This will use the json templates to create stemcells and pods.
 
+### Check Running Pods
+
+```cmd
+kubectl --kubeconfig kubeconfig proxy
+```
+
+Navigate to aka.ms/k8sui to check out the pods in a browser.
+![](images/podbrowser.png?raw=true)
+
 ### Pending Items
 
 - Create Stemcell

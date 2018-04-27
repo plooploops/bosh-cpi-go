@@ -24,3 +24,11 @@ dep ensure
 go build docs/kubernetes-cpi.go
 ```
 
+### Testing Steps
+
+We will need to run docs/test.sh (we can use Bash or Windows Subsystem).  This will use the json templates to create stemcells and pods.
+
+### Pending Items
+
+Create Stemcell
+

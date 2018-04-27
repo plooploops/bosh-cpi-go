@@ -88,7 +88,7 @@ func (c CPI) CreateStemcell(imagePath string, _ apiv1.StemcellCloudProps) (apiv1
 	// Ideally we'd take the stemcell tarball and build an image out of, upload that to the registry, and point to that
 	// But the most widely used real stemcells are Ubuntu Trusty, so we'll cheat and use that here
 	// (though it can't work "for real" because they don't have bosh agents)
-	return apiv1.NewStemcellCID("ubuntu:14.04"), nil
+	return apiv1.NewStemcellCID("phusion/baseimage"), nil
 }
 
 func (c CPI) DeleteStemcell(cid apiv1.StemcellCID) error {

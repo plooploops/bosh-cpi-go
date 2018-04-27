@@ -223,11 +223,11 @@ func (c CPI) AttachDisk(vmCID apiv1.VMCID, diskCID apiv1.DiskCID) error {
 	}
 	pod.ObjectMeta.ResourceVersion = ""
 
-	ok := true
-	for ok {
+	deleteFinished := true
+	for deleteFinished {
 		_, err = podsClient.Create(pod)
-		ok = apimachv1.IsAlreadyExists(err)
-		time.Sleep(1 * time.Second) //sleep to loosen calls
+		deleteFinished = apimachv1.IsAlreadyExists(err) //check if the pod is already exists (pending delete) then try to create it again
+		time.Sleep(1 * time.Second)                     //sleep to loosen calls
 	}
 
 	return nil

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	"github.com/cppforlife/bosh-cpi-go/apiv1"
@@ -15,6 +17,7 @@ import (
 	// "k8s.io/client-go/1.5/pkg/api/v1"
 	// "k8s.io/client-go/1.5/tools/clientcmd"
 	corev1 "k8s.io/api/core/v1"
+	apimachv1 "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -41,8 +44,6 @@ func main() {
 		logger.Error("main", "Serving once: %s", err)
 		os.Exit(1)
 	}
-
-	// CPI{}.CreateDisk(4096, nil, nil)
 
 	cli := rpc.NewFactory(logger).NewCLI(CPIFactory{})
 
@@ -83,7 +84,10 @@ func (c CPI) Info() (apiv1.Info, error) {
 }
 
 func (c CPI) CreateStemcell(imagePath string, _ apiv1.StemcellCloudProps) (apiv1.StemcellCID, error) {
-        // Handwave and always use the base ubuntu
+	// Handwave here; we need an image from a container registry
+	// Ideally we'd take the stemcell tarball and build an image out of, upload that to the registry, and point to that
+	// But the most widely used real stemcells are Ubuntu Trusty, so we'll cheat and use that here
+	// (though it can't work "for real" because they don't have bosh agents)
 	return apiv1.NewStemcellCID("ubuntu:14.04"), nil
 }
 
@@ -112,7 +116,7 @@ func (c CPI) CreateVM(
 					Image: stemcellCID.AsString(),
 					Ports: []corev1.ContainerPort{
 						{
-							ContainerPort: 8888,
+							ContainerPort: 22, //ssh
 						},
 					},
 				},
@@ -190,6 +194,42 @@ func (c CPI) DeleteDisk(cid apiv1.DiskCID) error {
 }
 
 func (c CPI) AttachDisk(vmCID apiv1.VMCID, diskCID apiv1.DiskCID) error {
+	podsClient := k8sClient.CoreV1().Pods(namespace)
+
+	// Retrieve the current state of the pod
+	pod, err := podsClient.Get(vmCID.AsString(), metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	deletePolicy := metav1.DeletePropagationForeground
+	err = podsClient.Delete(vmCID.AsString(), &metav1.DeleteOptions{
+		PropagationPolicy: &deletePolicy,
+	})
+
+	//spin wait?
+	//pod still in memory
+	// Update the pod with the PVC
+	pod.Spec.Volumes = []corev1.Volume{
+		{
+			Name: diskCID.AsString(),
+		},
+	}
+	pod.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{
+		{
+			Name:      diskCID.AsString(),
+			MountPath: strings.Join([]string{"/mnt", diskCID.AsString()}, "/"),
+		},
+	}
+	pod.ObjectMeta.ResourceVersion = ""
+
+	ok := true
+	for ok {
+		_, err = podsClient.Create(pod)
+		ok = apimachv1.IsAlreadyExists(err)
+		time.Sleep(1 * time.Second) //sleep to loosen calls
+	}
+
 	return nil
 }
 

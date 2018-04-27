@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	"github.com/cppforlife/bosh-cpi-go/apiv1"
@@ -115,7 +116,7 @@ func (c CPI) CreateVM(
 					Image: stemcellCID.AsString(),
 					Ports: []corev1.ContainerPort{
 						{
-							ContainerPort: 22,  //ssh
+							ContainerPort: 22, //ssh
 						},
 					},
 				},
@@ -194,17 +195,26 @@ func (c CPI) DeleteDisk(cid apiv1.DiskCID) error {
 
 func (c CPI) AttachDisk(vmCID apiv1.VMCID, diskCID apiv1.DiskCID) error {
 	podsClient := k8sClient.CoreV1().Pods(namespace)
-	
+
 	// Retrieve the current state of the pod
 	pod, err := podsClient.Get(vmCID.AsString(), metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
-	
+
 	// Update the pod with the PVC
-	pod.Spec.Volumes = []corev1.Volumes{}
-	pod.Spec.Containers[0].VolumeMounts = {}
-	_, err := podsClient.Update(pod))
+	pod.Spec.Volumes = []corev1.Volume{
+		{
+			Name: diskCID.AsString(),
+		},
+	}
+	pod.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{
+		{
+			Name:      diskCID.AsString(),
+			MountPath: strings.Join([]string{"/mnt", diskCID.AsString()}, "/"),
+		},
+	}
+	_, err = podsClient.Update(pod)
 	if err != nil {
 		return err
 	}

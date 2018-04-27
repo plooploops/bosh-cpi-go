@@ -1,11 +1,9 @@
 package main
 
 import (
-	// "fmt"
+	"flag"
 	"fmt"
 	"os"
-
-	"flag"
 	"path/filepath"
 
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
@@ -13,11 +11,9 @@ import (
 	"github.com/cppforlife/bosh-cpi-go/rpc"
 	uuid "github.com/satori/go.uuid"
 	//	"k8s.io/apimachinery/pkg/api/errors"
-
 	// "k8s.io/client-go/1.5/kubernetes"
 	// "k8s.io/client-go/1.5/pkg/api/v1"
 	// "k8s.io/client-go/1.5/tools/clientcmd"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,25 +25,24 @@ type CPIFactory struct{}
 
 type CPI struct{}
 
-var _ apiv1.CPIFactory = CPIFactory{}
-var _ apiv1.CPI = CPI{}
-
-// var testharness apiv1.CPI = CPI{}
+// var _ apiv1.CPIFactory = CPIFactory{}
+// var _ apiv1.CPI = CPI{}
 
 var k8sClient *kubernetes.Clientset
 var namespace = "default"
 
 func main() {
+	logger := boshlog.NewLogger(boshlog.LevelNone)
+
 	var err error
 	k8sConfigPath := filepath.Join(".", "kubeconfig")
 	k8sClient, err = initK8s(k8sConfigPath)
 	if err != nil {
-		panic(err.Error())
+		logger.Error("main", "Serving once: %s", err)
+		os.Exit(1)
 	}
 
-	// testharness.CreateDisk(4096, nil, nil)
-
-	logger := boshlog.NewLogger(boshlog.LevelNone)
+	// CPI{}.CreateDisk(4096, nil, nil)
 
 	cli := rpc.NewFactory(logger).NewCLI(CPIFactory{})
 
@@ -56,7 +51,6 @@ func main() {
 		logger.Error("main", "Serving once: %s", err)
 		os.Exit(1)
 	}
-
 }
 
 func initK8s(k8sConfigPath string) (*kubernetes.Clientset, error) {
@@ -130,8 +124,7 @@ func (c CPI) CreateVM(
 	})
 
 	if err != nil {
-		// return "", err
-		panic(err.Error())
+		return apiv1.NewVMCID(""), err
 	}
 
 	return apiv1.NewVMCID(vmcid), nil
@@ -167,15 +160,12 @@ func (c CPI) GetDisks(cid apiv1.VMCID) ([]apiv1.DiskCID, error) {
 	return []apiv1.DiskCID{}, nil
 }
 
-func (c CPI) CreateDisk(size int,
-	cloudProps apiv1.DiskCloudProps, associatedVMCID *apiv1.VMCID) (apiv1.DiskCID, error) {
-
-	//resources
+func (c CPI) CreateDisk(size int, cloudProps apiv1.DiskCloudProps, associatedVMCID *apiv1.VMCID) (apiv1.DiskCID, error) {
 	scn := "azurefile"
 	diskCID := uuid.NewV4().String()
 	quantity, err := resource.ParseQuantity(fmt.Sprintf("%dGi", size/1024))
 	if err != nil {
-		panic(err.Error())
+		return apiv1.NewDiskCID(""), err
 	}
 
 	pvcClient := k8sClient.CoreV1().PersistentVolumeClaims(namespace)
@@ -192,10 +182,10 @@ func (c CPI) CreateDisk(size int,
 		},
 	})
 	if err != nil {
-		panic(err.Error())
+		return apiv1.NewDiskCID(""), err
 	}
 
-	return apiv1.NewDiskCID("disk-cid"), nil
+	return apiv1.NewDiskCID(diskCID), nil
 }
 
 func (c CPI) DeleteDisk(cid apiv1.DiskCID) error {

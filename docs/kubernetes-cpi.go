@@ -213,6 +213,7 @@ func (c CPI) AttachDisk(vmCID apiv1.VMCID, diskCID apiv1.DiskCID) error {
 	pod.Spec.Volumes = []corev1.Volume{
 		{
 			Name: diskCID.AsString(),
+			HostPath: nil // Do like https://github.com/MicrosoftDX/MB-ForensicWatermark/blob/master/k8s/submit-job-tempdisk.yaml#L35-L38
 		},
 	}
 	pod.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{

@@ -7,6 +7,11 @@ CPIs using this library:
 - [Warden CPI](https://github.com/cppforlife/bosh-warden-cpi-release)
 - [VirtualBox CPI](https://github.com/cppforlife/bosh-virtualbox-cpi-release)
 
+### What we're attempting to do:
+
+![](images/poddiagram.png?raw=true)
+
+The green and orange boxes describe what we're attempting to stand up with Bosh CPIs.  We'd like to utilize Azure Files and AKS Pods to back a bosh Kubernetes CPI implementation.
 
 ### build steps
 
@@ -26,9 +31,29 @@ go build docs/kubernetes-cpi.go
 
 ### Testing Steps
 
-We will need to run docs/test.sh (we can use Bash or Windows Subsystem).  This will use the json templates to create stemcells and pods.
+We can use Bash (WSL / Linux):
+```cmd
+docs/test.sh
+```
+
+This will use the json templates to create stemcells and pods.
+
+### Check Running Pods
+
+```cmd
+kubectl --kubeconfig kubeconfig proxy
+```
+
+Navigate to aka.ms/k8sui to check out the pods in a browser.
+![](images/podbrowser.png?raw=true)
+
+We can also use kubectl to get into a running pod.
+
+```cmd
+kubectl exec -it trustypod -- bash
+```
 
 ### Pending Items
 
-Create Stemcell
-
+- Create Stemcell
+- Fill in other parts of CPI interface
